@@ -1,0 +1,29 @@
+replicaCount: 1
+
+image:
+  repository: myrepo/valkey-operator
+  tag: latest
+  pullPolicy: IfNotPresent
+
+namespace: valkey-operator
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+serviceAccount:
+  create: true
+  name: ""
+
+rbac:
+  create: true

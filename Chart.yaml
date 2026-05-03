@@ -1,0 +1,8 @@
+apiVersion: v2
+name: valkey-operator
+description: A Helm chart for deploying Valkey Operator with custom container image
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Kubernetes Team

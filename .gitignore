@@ -1,0 +1,14 @@
+.kilo/
+*.swp
+*.swo
+*~
+.DS_Store
+*.pyc
+__pycache__/
+node_modules/
+*.log
+.env
+.terraform/
+.terraform.lock.hcl
+tfplan
+tfstate*
