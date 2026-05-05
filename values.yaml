@@ -1,29 +1,102 @@
-replicaCount: 1
+# Global settings
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
 
+# Image configuration
 image:
-  repository: myrepo/valkey-operator
-  tag: latest
+  registry: ghcr.io
+  repository: valkey-io/valkey-operator
+  tag: c02b66b
   pullPolicy: IfNotPresent
 
-namespace: valkey-operator
+# Image pull secrets for private registries
+imagePullSecrets: []
 
-resources:
-  limits:
-    cpu: 500m
-    memory: 256Mi
-  requests:
-    cpu: 100m
-    memory: 128Mi
+# Override the chart name used in app.kubernetes.io/name label
+nameOverride: ""
+# Override the full name used for Kubernetes resources (defaults to release name)
+fullnameOverride: ""
 
-nodeSelector: {}
+# Deployment replicas
+replicaCount: 1
 
-tolerations: []
-
-affinity: {}
-
+# ServiceAccount configuration
 serviceAccount:
   create: true
   name: ""
+  automount: true
+  annotations: {}
+  labels: {}
 
+# RBAC configuration
 rbac:
   create: true
+
+# Manager configuration
+manager:
+  leaderElection:
+    enabled: true
+  # Namespace to watch; empty string means all namespaces
+  watchNamespace: ""
+  args: []
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 64Mi
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# Node scheduling constraints
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Pod metadata
+podAnnotations: {}
+podLabels: {}
+commonLabels: {}
+
+# NetworkPolicy configuration (optional)
+networkPolicy:
+  enabled: false
+  # Namespace where the NetworkPolicy will be applied.
+  # Set to the namespace where Valkey pods are deployed.
+  # If empty, uses .Release.Namespace (operator's namespace) — typically NOT where Valkey pods live.
+  targetNamespace: ""
+  # Labels to identify Valkey pods (matchLabels)
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: valkey
+      # app.kubernetes.io/instance can be added if ValkeyCluster name is known and consistent
+  # Label selector for namespaces allowed to connect
+  allowedNamespaceLabelKey: valkey-access
+  allowedNamespaceLabelValue: "true"
+  # Port to allow ingress traffic on (Valkey port)
+  port: 6379
+
+# Metrics configuration
+metrics:
+  enabled: true
+  port: 8443
+  service:
+    type: ClusterIP
+    annotations: {}
+    labels: {}

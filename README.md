@@ -1,205 +1,538 @@
-# Valkey Operator Helm Chart
+# valkey-operator
 
-A production-ready Helm chart for deploying the Valkey Operator on Kubernetes. This chart deploys the Valkey Operator as a Kubernetes Deployment with configurable RBAC, namespace isolation, and resource management.
+![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.1.0](https://img.shields.io/badge/AppVersion-v0.1.0-informational?style=flat-square)
 
-## Overview
-
-The Valkey Operator manages Valkey clusters (a Redis-compatible in-memory data store) running on Kubernetes. It watches for `ValkeyCluster` custom resources and automatically provisions, scales, and manages Valkey clusters based on the desired state specified in those resources.
-
-## What Happens After Installation
-
-After installing this Helm chart, the following components are deployed:
-
-1. **ServiceAccount** (`<release-name>-valkey-operator`) - Dedicated service account for the operator with least-privilege access.
-
-2. **Role & RoleBinding** - Grants the operator permissions to manage Kubernetes resources within the target namespace:
-   - Pods, Services, ConfigMaps, Secrets
-   - Deployments and StatefulSets
-   - ValkeyCluster custom resources (CRDs)
-   - Events for logging operator activity
-
-3. **ClusterRole & ClusterRoleBinding** - Grants cluster-scoped permissions for:
-   - Watching namespaces
-   - Watching CustomResourceDefinitions (for ValkeyCluster CRD discovery)
-   - Watching ValkeyCluster resources across all namespaces
-
-4. **Deployment** - Runs the Valkey Operator container with:
-   - Configurable replica count (default: 1)
-   - Resource limits and requests
-   - Node selector, tolerations, and affinity rules
-   - Custom container image support
-
-Once the operator pod is running, you can create `ValkeyCluster` custom resources to deploy and manage Valkey clusters. The operator will automatically create the necessary StatefulSets, Services, and ConfigMaps to run your Valkey clusters.
+A Helm chart for deploying the [Valkey Operator](https://github.com/valkey-io/valkey-operator) on Kubernetes. The operator manages Valkey clusters through custom resources (ValkeyCluster, ValkeyNode).
 
 ## Prerequisites
 
-- Kubernetes 1.19+
-- Helm 3.0+
-- Valkey Operator container image (default: `myrepo/valkey-operator:latest`)
+- Kubernetes 1.20+
+- Helm 3.5+
+
+## Overview
+
+This chart deploys the Valkey Operator controller manager as a Deployment in your Kubernetes cluster. The operator watches for `ValkeyCluster` and `ValkeyNode` custom resources and manages the corresponding Valkey instances.
+
+### Resource Naming Convention
+
+All Kubernetes resources created by this chart use the **release name** as the base identifier:
+
+| Resource Type | Resource Name (example: release=`valkey-cluster`) |
+|---|---|
+| Deployment | `valkey-cluster` |
+| ServiceAccount | `valkey-cluster` |
+| ClusterRole | `valkey-cluster-manager` |
+| ClusterRoleBinding | `valkey-cluster-manager` |
+| Role (leader election) | `valkey-cluster-leader-election` |
+| RoleBinding (leader election) | `valkey-cluster-leader-election` |
+| Service (metrics) | `valkey-cluster-metrics` |
+
+**Note:** The operator image tag is derived from the chart's `appVersion` by default. Override via `image.tag` in `values.yaml`.
 
 ## Installation
 
-### Basic Installation
+Install the chart with a release name into the `valkey-operator` namespace:
 
 ```bash
-helm repo add valkey-operator ./valkey-operator-chart
-helm install valkey-operator valkey-operator/valkey-operator
-```
-
-### Custom Image Installation
-
-To use the custom container image `ghcr.io/chaluvadis/valkey-operator:16d938e`:
-
-```bash
-helm install valkey-operator ./valkey-operator-chart \
-  --set image.repository=ghcr.io/chaluvadis/valkey-operator \
-  --set image.tag=16d938e \
-  --set image.pullPolicy=IfNotPresent
-```
-
-### Installation in a Specific Namespace
-
-```bash
-helm install valkey-operator ./valkey-operator-chart \
-  --namespace my-namespace \
+helm install valkey-cluster valkey-operator \
+  --namespace valkey-operator \
   --create-namespace
 ```
 
-## Configuration
+This installs the operator with the following default configuration:
+- 1 replica
+- RBAC enabled (ClusterRole, ClusterRoleBinding, ServiceAccount)
+- Leader election enabled for high availability
+- Metrics endpoint enabled on port 8443
+- Security contexts configured (non-root, read-only root filesystem, dropped capabilities)
 
-The following table lists the configurable parameters of the Valkey Operator chart and their default values.
+## Upgrade Instructions
+
+Upgrade an existing release:
+
+```bash
+helm upgrade valkey-cluster valkey-operator \
+  --namespace valkey-operator \
+  --values values.yaml
+```
+
+Preview changes before upgrading (requires `helm-diff` plugin):
+
+```bash
+helm diff upgrade valkey-cluster valkey-operator \
+  --namespace valkey-operator \
+  --values values.yaml
+```
+
+## Template Rendering (Dry Run)
+
+Render Kubernetes manifests without applying:
+
+```bash
+helm template valkey-cluster valkey-operator \
+  --namespace valkey-operator \
+  --values values.yaml
+```
+
+Validate rendered manifests:
+
+```bash
+helm template valkey-cluster valkey-operator \
+  --namespace valkey-operator \
+  --values values.yaml | kubeconform -strict -summary
+```
+
+## Uninstallation / Removal
+
+Remove the Helm release and all associated cluster-scoped resources:
+
+```bash
+helm uninstall valkey-cluster --namespace valkey-operator
+```
+
+### Removing Custom Resource Definitions (CRDs)
+
+The chart's CRDs are not removed by Helm. To delete them:
+
+```bash
+kubectl delete crd valkeyclusters.valkey.io
+kubectl delete crd valkeynodes.valkey.io
+```
+
+> **Warning:** Deleting CRDs permanently removes all ValkeyCluster and ValkeyNode custom resources in the cluster.
+
+## Configuration Reference
+
+### Essential Parameters
 
 | Parameter | Description | Default |
-|-----------|-------------|---------|
+|---|---|---|
+| `image.repository` | Operator container image repository | `valkey-io/valkey-operator` |
+| `image.tag` | Operator image tag | `""` (uses `Chart.AppVersion`) |
+| `image.registry` | Container image registry | `ghcr.io` |
+| `image.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `replicaCount` | Number of operator replicas | `1` |
-| `image.repository` | Operator container image repository | `myrepo/valkey-operator` |
-| `image.tag` | Operator container image tag | `latest` |
-| `image.pullPolicy` | Container image pull policy | `IfNotPresent` |
-| `namespace` | Namespace to deploy the operator into | `valkey-operator` |
-| `resources.limits.cpu` | CPU resource limit | `500m` |
-| `resources.limits.memory` | Memory resource limit | `256Mi` |
-| `resources.requests.cpu` | CPU resource request | `100m` |
-| `resources.requests.memory` | Memory resource request | `128Mi` |
-| `nodeSelector` | Node labels for pod assignment | `{}` |
-| `tolerations` | Tolerations for pod assignment | `[]` |
-| `affinity` | Affinity rules for pod assignment | `{}` |
-| `serviceAccount.create` | Create a new service account | `true` |
-| `serviceAccount.name` | Name of the service account (defaults to fullname) | `""` |
-| `rbac.create` | Create RBAC resources | `true` |
+| `rbac.create` | Create ClusterRole/ClusterRoleBinding | `true` |
+| `manager.leaderElection.enabled` | Enable leader election for HA | `true` |
+| `manager.watchNamespace` | Namespace to watch (empty = all namespaces) | `""` |
+| `manager.args` | Additional CLI arguments | `[]` |
+| `metrics.enabled` | Enable metrics service and endpoint | `true` |
+| `metrics.port` | Metrics port | `8443` |
 
-Specify each parameter using the `--set key=value` argument to `helm install`. For example:
+### Resource Requests and Limits
 
-```bash
-helm install valkey-operator ./valkey-operator-chart \
-  --set replicaCount=2 \
-  --set resources.limits.memory=512Mi \
-  --set nodeSelector.\"beta\.kubernetes\.io/arch\"=amd64
-```
-
-Alternatively, you can provide a custom `values.yaml` file:
-
-```bash
-helm install valkey-operator ./valkey-operator-chart -f my-values.yaml
-```
-
-## Post-Installation Steps
-
-After the operator is running, create a `ValkeyCluster` custom resource to deploy a Valkey cluster:
+Configure CPU and memory for the operator container:
 
 ```yaml
-apiVersion: valkey.io/v1
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 64Mi
+```
+
+### Security Contexts
+
+**Pod-level security context:**
+```yaml
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+```
+
+**Container-level security context:**
+```yaml
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+```
+
+Adjust these settings only if required by your organization's security policy.
+
+### Image Pull Secrets
+
+For private container registries, configure image pull secrets:
+
+```yaml
+imagePullSecrets:
+  - name: my-registry-secret
+```
+
+Or use global settings:
+```yaml
+global:
+  imagePullSecrets:
+    - name: my-registry-secret
+```
+
+### ServiceAccount Configuration
+
+```yaml
+serviceAccount:
+  create: true          # Create a dedicated ServiceAccount
+  name: ""             # Override name (defaults to release name)
+  automount: true      # Automatically mount service account token
+  annotations: {}      # Custom annotations
+  labels: {}           # Custom labels
+```
+
+Set `serviceAccount.create=false` to use an existing ServiceAccount:
+```yaml
+serviceAccount:
+  create: false
+  name: existing-sa-name
+```
+
+### Namespace Watching
+
+Control which namespaces the operator watches for ValkeyCluster resources:
+
+```yaml
+manager:
+  watchNamespace: ""  # Empty = watch all namespaces (default)
+  # watchNamespace: "production"  # Restrict to a single namespace
+  # watchNamespace: "ns1,ns2"     # Multiple namespaces (comma-separated if supported)
+```
+
+**Default behavior:** When `watchNamespace` is empty (`""`), the operator watches all namespaces in the cluster. This is the recommended setting for a cluster-wide operator.
+
+**Restricted watching:** Set `watchNamespace` to a specific namespace name to limit the operator's scope. This is useful for multi-tenant clusters where operators should only manage resources in designated namespaces.
+
+**Note:** The operator must be granted RBAC permissions to access the watched namespaces. When watching all namespaces, the ClusterRole provides the necessary permissions. When watching a specific namespace, you may need to adjust RBAC accordingly.
+
+### Node Scheduling Constraints
+
+Control pod placement using Kubernetes scheduling features:
+
+```yaml
+nodeSelector:
+  kubernetes.io/os: linux
+
+tolerations:
+  - key: "node-role.kubernetes.io/control-plane"
+    operator: "Exists"
+    effect: "NoSchedule"
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+                - amd64
+                - arm64
+```
+
+### Custom Manager Arguments
+
+Pass additional flags to the Valkey Operator binary:
+
+```yaml
+manager:
+  args:
+    - --health-probe-bind-address=:8081
+    - --some-custom-flag=value
+```
+
+### Pod Metadata
+
+Add custom labels and annotations to operator pods:
+
+```yaml
+podAnnotations:
+  example.com/owner: "platform-team"
+
+podLabels:
+  team: infrastructure
+
+commonLabels:
+  environment: production
+```
+
+### Disabling Features
+
+**Disable metrics endpoint:**
+```yaml
+metrics:
+  enabled: false
+```
+
+**Disable RBAC (not recommended for production):**
+```yaml
+rbac:
+  create: false
+```
+
+**Disable leader election (single replica only):**
+```yaml
+manager:
+  leaderElection:
+    enabled: false
+```
+
+### Resource Name Overrides
+
+Use overrides with caution — they affect all generated resource names:
+
+```yaml
+nameOverride: "custom-name"           # Changes app.kubernetes.io/name label
+fullnameOverride: "my-custom-resource" # Overrides all resource names entirely
+```
+
+## Creating a ValkeyCluster
+
+After the operator is running, create a ValkeyCluster custom resource:
+
+```yaml
+apiVersion: valkey.io/v1alpha1
 kind: ValkeyCluster
 metadata:
-  name: my-valkey-cluster
-  namespace: valkey-operator
+  name: my-cluster
+  namespace: default  # Optional: omit to use current namespace
 spec:
-  size: 3
-  version: "7.0"
+  replicas: 3
 ```
 
-Apply it with:
+**Note on namespaces:**
+- If `manager.watchNamespace` is empty (default), the operator watches all namespaces — you can create ValkeyClusters in any namespace.
+- If `manager.watchNamespace` is set, create ValkeyClusters only in that namespace.
+
+Apply the manifest:
 
 ```bash
-kubectl apply -f valkey-cluster.yaml
+kubectl apply -f cluster.yaml
 ```
 
-The operator will detect this resource and automatically create the necessary StatefulSet, headless Service, and ConfigMap for your Valkey cluster.
+### ValkeyCluster Spec Options
 
-## Verification
+The `spec` field supports:
 
-Check that the operator pod is running:
+| Field | Description | Default |
+|---|---|---|
+| `replicas` | Number of replicas per shard | `3` |
+| `shards` | Number of primary shards | *(Not available in all versions)* |
+| `mode` | Cluster mode: `standalone` or `replication` | `replication` |
+| `persistence.enabled` | Enable persistent storage | `true` |
+| `persistence.size` | PVC size | `8Gi` |
+| `persistence.storageClass` | Storage class name | *(cluster default)* |
+| `failover.enabled` | Automatic failover | `true` |
+| `failover.timeoutSeconds` | Failover timeout | `30` |
+| `fencing.enabled` | Enable pod fencing | `true` |
+
+Check your installed CRD schema for exact available fields:
+```bash
+kubectl explain valkeycluster.spec
+```
+
+## Observing the Operator
+
+### Check Installation Status
 
 ```bash
-kubectl get pods -n valkey-operator
+# Verify operator pod is running
+kubectl get pods -n valkey-operator -l app.kubernetes.io/name=valkey-operator
+
+# Check operator logs
+kubectl logs -n valkey-operator -l app.kubernetes.io/name=valkey-operator -f
 ```
 
-View operator logs:
+### Monitor ValkeyCluster
 
 ```bash
-kubectl logs -f deployment/valkey-operator -n valkey-operator
+# List ValkeyClusters
+kubectl get valkeycluster
+
+# Watch a specific cluster
+kubectl get valkeycluster my-cluster -w
+
+# Describe for detailed status and events
+kubectl describe valkeycluster my-cluster
 ```
 
-List ValkeyCluster resources:
+### Inspect ValkeyNodes
 
 ```bash
-kubectl get valkeyclusters -n valkey-operator
+# List all ValkeyNodes
+kubectl get valkeynodes
+
+# Get nodes for a specific cluster
+kubectl get valkeynodes -l app.kubernetes.io/instance=my-cluster
+
+# Describe a node
+kubectl describe valkeynode my-cluster-0
 ```
 
-## Uninstallation
+### View Metrics
 
-To uninstall the Valkey Operator:
+If metrics are enabled:
 
 ```bash
-helm uninstall valkey-operator
+# Port-forward the metrics service
+kubectl port-forward -n valkey-operator svc/valkey-cluster-metrics 8443:8443 &
+sleep 2
+
+# Query Prometheus metrics
+curl -k https://localhost:8443/metrics
+
+# Clean up
+kill %1
 ```
 
-This removes all Kubernetes components associated with the chart, including the Deployment, ServiceAccount, RBAC resources, and any associated ConfigMaps/Services created by the operator. However, it **does not** delete the ValkeyCluster custom resources or the Valkey clusters managed by the operator. You may need to delete those manually before uninstalling.
+Common Prometheus metrics:
+- `valkey_operator_reconcile_total` — total reconciliation operations
+- `valkey_operator_reconcile_errors_total` — total reconciliation errors
+- `valkey_operator_reconcile_duration_seconds` — duration of reconciliations
 
-## Upgrading
-
-To upgrade to a new version of the operator, update the image tag in your values file or via `--set`:
+### Test Valkey Connectivity
 
 ```bash
-helm upgrade valkey-operator ./valkey-operator-chart \
-  --set image.tag=16d938e
+# Get the Valkey service
+kubectl get svc -l app.kubernetes.io/instance=my-cluster
+
+# Port-forward to test Redis protocol
+kubectl port-forward svc/my-cluster 6379:6379 &
+sleep 2
+
+# Ping the Valkey server
+redis-cli -h localhost -p 6379 ping
+
+# Clean up
+kill %1
 ```
-
-The operator Deployment will be updated with a rolling update strategy.
-
-## Architecture
-
-The Valkey Operator follows the Kubernetes Operator pattern:
-
-1. **Controller**: Watches for ValkeyCluster custom resources and reconciles the actual state with the desired state.
-2. **Reconciliation Loop**: For each ValkeyCluster, ensures the correct number of replicas, configuration, and networking are in place.
-3. **Event Handling**: Reacts to changes in ValkeyCluster resources, Valkey pod failures, and configuration updates.
 
 ## Troubleshooting
 
 ### Operator pod not starting
 
-Check for resource constraints:
 ```bash
-kubectl describe pod/<operator-pod> -n valkey-operator
+# Check pod status and events
+kubectl describe pod -n valkey-operator -l app.kubernetes.io/name=valkey-operator
+
+# Check for image pull errors
+kubectl get pods -n valkey-operator -o jsonpath='{.items[*].status.containerStatuses[*].state.waiting.reason}'
 ```
 
-### ValkeyCluster not being processed
+### ValkeyCluster stuck in Pending
 
-Check operator logs for errors:
 ```bash
-kubectl logs -f deployment/valkey-operator -n valkey-operator
+# Check operator logs for errors
+kubectl logs -n valkey-operator -l app.kubernetes.io/name=valkey-operator | grep -i error
+
+# Check PVC provisioning status
+kubectl get pvc -l app.kubernetes.io/instance=my-cluster
 ```
 
-### Image pull errors
+### Metrics unavailable
 
-Ensure the image repository and tag are correct, and that the cluster has access to pull the image. For private registries, create a Kubernetes image pull secret and reference it in the `imagePullSecrets` field.
+```bash
+# Verify metrics service exists
+kubectl get svc -n valkey-operator valkey-cluster-metrics
+
+# Test metrics endpoint directly
+kubectl port-forward -n valkey-operator svc/valkey-cluster-metrics 8443:8443 &
+curl -k https://localhost:8443/metrics | head -20
+```
+
+## Chart Structure
+
+The chart follows standard Helm layout:
+
+```
+valkey-operator/
+├── Chart.yaml          # Chart metadata
+├── values.yaml         # Default configuration values
+├── templates/          # Kubernetes manifest templates
+│   ├── _helpers.tpl   # Template helper functions
+│   ├── deployment.yaml
+│   ├── service-account.yaml
+│   ├── cluster-role.yaml
+│   ├── cluster-role-binding.yaml
+│   ├── leader-election-role.yaml
+│   ├── leader-election-role-binding.yaml
+│   ├── metrics-service.yaml
+│   └── NOTES.txt
+├── crds/              # Custom Resource Definitions
+│   ├── valkeyclusters.yaml
+│   └── valkeynodes.yaml
+└── README.md          # This documentation
+```
+
+### Template File Naming Convention
+
+All template files use lowercase hyphenated multi-word names:
+- `service-account.yaml` (not `serviceaccount.yaml`)
+- `cluster-role.yaml` (not `clusterrole.yaml`)
+- `cluster-role-binding.yaml` (not `clusterrolebinding.yaml`)
+- `leader-election-role.yaml`
+- `leader-election-role-binding.yaml`
+
+This improves readability and consistency across Kubernetes Helm charts.
+
+## Values Files
+
+Keep a custom `values.yaml` in version control for your production deployment:
+
+```yaml
+# Custom production overrides
+replicaCount: 2
+resources:
+  limits:
+    cpu: "1"
+    memory: "256Mi"
+  requests:
+    cpu: "250m"
+    memory: "128Mi"
+metrics:
+  enabled: true
+```
+
+Apply during install/upgrade:
+```bash
+helm install valkey-cluster valkey-operator \
+  --namespace valkey-operator \
+  --values values.yaml
+```
+
+## Upgrade and Rollback
+
+```bash
+# List release history
+helm history valkey-cluster --namespace valkey-operator
+
+# Rollback to previous revision
+helm rollback valkey-cluster 1 --namespace valkey-operator
+```
+
+## Backup and Restore
+
+### Backing Up Custom Resources
+
+```bash
+# Export all ValkeyCluster and ValkeyNode resources
+kubectl get valkeycluster --all-namespaces -o yaml > backup-valkeyclusters.yaml
+kubectl get valkeynode --all-namespaces -o yaml > backup-valkeynodes.yaml
+```
+
+### Restoring After Reinstall
+
+```bash
+# Reapply your custom resources
+kubectl apply -f backup-valkeyclusters.yaml
+kubectl apply -f backup-valkeynodes.yaml
+```
+
+## Source Code
+
+- <https://github.com/valkey-io/valkey-operator>
 
 ## License
 
-This Helm chart is provided as-is for deploying the Valkey Operator. Check the Valkey Operator container image for its specific license terms.
-
-## Support
-
-For issues related to the Valkey Operator itself, please refer to the [Valkey Operator documentation](https://github.com/valkey-io/valkey-operator).
-
-For issues with this Helm chart, please open an issue in the repository.
+Apache License 2.0 — see the upstream repository for details.

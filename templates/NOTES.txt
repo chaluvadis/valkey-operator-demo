@@ -1,12 +1,21 @@
-1. Get the Valkey Operator URL by running these commands:
-   {{- if .Values.namespace }}
-   export VALKEY_OPERATOR_NAMESPACE={{ .Values.namespace }}
-   {{- else }}
-   export VALKEY_OPERATOR_NAMESPACE=default
-   {{- end }}
-   kubectl get pods -n $VALKEY_OPERATOR_NAMESPACE
+The valkey-operator has been installed.
 
-2. Verify the operator is running:
-   kubectl logs -f deployment/{{ include "valkey-operator.fullname" . }} -n $VALKEY_OPERATOR_NAMESPACE
+To verify the operator is running:
 
-3. Create a ValkeyCluster custom resource to deploy Valkey clusters managed by the operator.
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+To create a ValkeyCluster:
+
+  cat <<EOF | kubectl apply -f -
+  apiVersion: valkey.io/v1alpha1
+  kind: ValkeyCluster
+  metadata:
+    name: my-cluster
+  spec:
+    replicas: 1
+  EOF
+
+  # For multi-shard clusters, also set:
+  # spec:
+  #   shards: 3
+  #   replicas: 1

@@ -1,32 +1,106 @@
-{{- define "valkey-operator.fullname" -}}
-{{- printf "%s-%s" .Release.Name "valkey-operator" | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
+{{/*
+Expand the name of the chart.
+*/}}
+{{- define "valkey-operator.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
 
+{{/*
+Create a default fully qualified app name.
+Uses release name by default; override with fullnameOverride if specified.
+*/}}
+{{- define "valkey-operator.fullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create chart name and version as used by the chart label.
+*/}}
+{{- define "valkey-operator.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Common labels
+*/}}
 {{- define "valkey-operator.labels" -}}
 helm.sh/chart: {{ include "valkey-operator.chart" . }}
-app.kubernetes.io/name: {{ include "valkey-operator.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/version: {{ .Chart.AppVersion }}
+{{ include "valkey-operator.selectorLabels" . }}
+{{- if or .Values.image.tag .Chart.AppVersion }}
+app.kubernetes.io/version: {{ mustRegexReplaceAllLiteral "@sha.*" .Values.image.tag "" | default .Chart.AppVersion | trunc 63 | trimSuffix "-" | quote }}
+{{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- end -}}
+{{- with .Values.commonLabels }}
+{{ toYaml . }}
+{{- end }}
+{{- end }}
 
-{{- define "valkey-operator.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-
-{{- define "valkey-operator.chart" -}}
-{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-
+{{/*
+Selector labels
+*/}}
 {{- define "valkey-operator.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "valkey-operator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "valkey-operator.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create }}
+{{- default (include "valkey-operator.fullname" .) .Values.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Returns the operator container image
+*/}}
+{{- define "valkey-operator.image" -}}
+{{- include "common.image" (dict "image" (dict "registry" .Values.image.registry "repository" .Values.image.repository "tag" (.Values.image.tag | default .Chart.AppVersion)) "global" .Values.global) }}
 {{- end -}}
 
-{{- define "valkey-operator.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create -}}
-{{- default (include "valkey-operator.fullname" .) .Values.serviceAccount.name -}}
-{{- else -}}
-{{- default "default" .Values.serviceAccount.name -}}
+{{/*
+The common image function that renders the container image
+*/}}
+{{- define "common.image" -}}
+{{- $registryName := .image.registry }}
+{{- $repositoryName := .image.repository }}
+{{- $tag := .image.tag }}
+{{- if .global }}
+  {{- if .global.imageRegistry }}
+    {{- $registryName = .global.imageRegistry }}
+  {{- end }}
+{{- end }}
+{{- if $registryName }}
+{{- printf "%s/%s:%s" $registryName $repositoryName $tag }}
+{{- else }}
+{{- printf "%s:%s" $repositoryName $tag }}
+{{- end }}
 {{- end -}}
+
+{{/*
+Returns the image pull secrets
+*/}}
+{{- define "valkey-operator.imagePullSecrets" -}}
+{{- $pullSecrets := list }}
+{{- if .Values.global }}
+  {{- range .Values.global.imagePullSecrets -}}
+    {{- $pullSecrets = append $pullSecrets . -}}
+  {{- end -}}
 {{- end -}}
+{{- range .Values.imagePullSecrets -}}
+    {{- $pullSecrets = append $pullSecrets . -}}
+{{- end -}}
+{{- if (not (empty $pullSecrets)) }}
+imagePullSecrets:
+{{- range $pullSecrets }}
+- name: {{ . }}
+{{- end }}
+{{- end }}
+{{- end }}
