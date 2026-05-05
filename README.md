@@ -39,6 +39,59 @@ helm install valkey-cluster valkey-operator \
   --create-namespace
 ```
 
+This installs the operator **and** creates a default ValkeyCluster with the following configuration:
+- 3 node cluster (single shard, 3 replicas)
+- Valkey version 7.2
+- Persistence enabled with 1Gi storage
+- Resource limits: 500m CPU, 512Mi memory per node
+
+### Installation Options
+
+#### Operator Only (No ValkeyCluster)
+
+To deploy only the operator without creating a ValkeyCluster:
+
+```bash
+helm install valkey-cluster valkey-operator \
+  --namespace valkey-operator \
+  --create-namespace \
+  --set valkeyCluster.create=false
+```
+
+#### Custom ValkeyCluster
+
+To customize the default ValkeyCluster:
+
+```bash
+helm install valkey-cluster valkey-operator \
+  --namespace valkey-operator \
+  --create-namespace \
+  --set valkeyCluster.name=my-production-cluster \
+  --set valkeyCluster.size=6 \
+  --set valkeyCluster.version="7.2" \
+  --set valkeyCluster.persistence.size=10Gi
+```
+
+Or use a custom `values.yaml`:
+
+```bash
+helm install valkey-cluster valkey-operator -f my-values.yaml
+```
+
+### Custom Image Installation
+
+To use a custom container image (e.g., from a private registry):
+
+```bash
+helm install valkey-cluster valkey-operator \
+  --namespace valkey-operator \
+  --create-namespace \
+  --set image.registry=ghcr.io \
+  --set image.repository=chaluvadis/valkey-operator \
+  --set image.tag=16d938e \
+  --set image.pullPolicy=IfNotPresent
+```
+
 This installs the operator with the following default configuration:
 - 1 replica
 - RBAC enabled (ClusterRole, ClusterRoleBinding, ServiceAccount)

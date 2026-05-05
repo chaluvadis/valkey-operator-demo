@@ -100,3 +100,23 @@ metrics:
     type: ClusterIP
     annotations: {}
     labels: {}
+
+# Create a default ValkeyCluster
+# Set create to false if you only want to deploy the operator without any cluster
+valkeyCluster:
+  create: true
+  name: "default-valkey-cluster"
+  shards: 1
+  replicas: 3
+  version: "7.2"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  # Additional container specs can be added here for volumes, etc.
