@@ -1,15 +1,31 @@
 apiVersion: v2
 name: valkey-operator
-description: A Helm chart for the Valkey Operator
+description: A Helm chart for deploying the Valkey Operator with automatic ValkeyCluster creation on Kubernetes
 type: application
-version: 0.1.0
-appVersion: "v0.1.0"
+version: 0.2.0
+appVersion: "16d938e"
 kubeVersion: ">=1.20.0-0"
-home: https://valkey.io/valkey-helm/
+home: https://github.com/valkey-io/valkey-operator
 sources:
-  - https://github.com/valkey-io/valkey-operator.git
+  - https://github.com/valkey-io/valkey-operator
   - https://valkey.io
 maintainers:
-  - name: daanvinken
-    url: https://github.com/daanvinken
+  - name: Valkey Operator Maintainers
+    url: https://github.com/valkey-io/valkey-operator
 icon: https://dyltqmyl993wv.cloudfront.net/assets/stacks/valkey/img/valkey-stack-220x234.png
+keywords:
+  - valkey
+  - redis
+  - operator
+  - kubernetes
+  - database
+annotations:
+  artifacthub.io/operator: "true"
+  artifacthub.io/operatorCapabilities: "Basic Install"
+  artifacthub.io/links: |
+    - name: Valkey Operator
+      url: https://github.com/valkey-io/valkey-operator
+    - name: Valkey Documentation
+      url: https://valkey.io
+    - name: Issue Tracker
+      url: https://github.com/valkey-io/valkey-operator/issues

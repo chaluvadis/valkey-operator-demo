@@ -12,10 +12,7 @@ image:
 
 # Image pull secrets for private registries
 imagePullSecrets: []
-
-# Override the chart name used in app.kubernetes.io/name label
 nameOverride: ""
-# Override the full name used for Kubernetes resources (defaults to release name)
 fullnameOverride: ""
 
 # Deployment replicas
@@ -37,7 +34,6 @@ rbac:
 manager:
   leaderElection:
     enabled: true
-  # Namespace to watch; empty string means all namespaces
   watchNamespace: ""
   args: []
 
@@ -77,19 +73,12 @@ commonLabels: {}
 # NetworkPolicy configuration (optional)
 networkPolicy:
   enabled: false
-  # Namespace where the NetworkPolicy will be applied.
-  # Set to the namespace where Valkey pods are deployed.
-  # If empty, uses .Release.Namespace (operator's namespace) — typically NOT where Valkey pods live.
   targetNamespace: ""
-  # Labels to identify Valkey pods (matchLabels)
   podSelector:
     matchLabels:
       app.kubernetes.io/name: valkey
-      # app.kubernetes.io/instance can be added if ValkeyCluster name is known and consistent
-  # Label selector for namespaces allowed to connect
   allowedNamespaceLabelKey: valkey-access
   allowedNamespaceLabelValue: "true"
-  # Port to allow ingress traffic on (Valkey port)
   port: 6379
 
 # Metrics configuration
@@ -101,11 +90,9 @@ metrics:
     annotations: {}
     labels: {}
 
-# Create a default ValkeyCluster
-# Set create to false if you only want to deploy the operator without any cluster
 valkeyCluster:
   create: true
-  name: "default-valkey-cluster"
+  name: "valkey-cluster"
   shards: 1
   replicas: 3
   version: "7.2"
@@ -119,4 +106,3 @@ valkeyCluster:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-  # Additional container specs can be added here for volumes, etc.
