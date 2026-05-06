@@ -1,0 +1,17 @@
+apiVersion: v2
+name: valkey-cluster
+description: Valkey Cluster - Data plane component that defines ValkeyCluster custom resources
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - valkey
+  - redis
+  - cluster
+  - database
+home: https://github.com/valkey-io/valkey-operator
+sources:
+  - https://github.com/valkey-io/valkey-operator
+maintainers:
+  - name: Valkey Operator Maintainers
+    url: https://github.com/valkey-io/valkey-operator

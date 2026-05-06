@@ -1,31 +1,17 @@
 apiVersion: v2
-name: valkey-operator
-description: A Helm chart for deploying the Valkey Operator with automatic ValkeyCluster creation on Kubernetes
+name: valkey-infra
+description: Umbrella chart for Valkey platform (operator + cluster) - Production-grade orchestration layer
 type: application
-version: 0.2.0
-appVersion: "16d938e"
-kubeVersion: ">=1.20.0-0"
-home: https://github.com/valkey-io/valkey-operator
-sources:
-  - https://github.com/valkey-io/valkey-operator
-  - https://valkey.io
-maintainers:
-  - name: Valkey Operator Maintainers
-    url: https://github.com/valkey-io/valkey-operator
-icon: https://dyltqmyl993wv.cloudfront.net/assets/stacks/valkey/img/valkey-stack-220x234.png
-keywords:
-  - valkey
-  - redis
-  - operator
-  - kubernetes
-  - database
-annotations:
-  artifacthub.io/operator: "true"
-  artifacthub.io/operatorCapabilities: "Basic Install"
-  artifacthub.io/links: |
-    - name: Valkey Operator
-      url: https://github.com/valkey-io/valkey-operator
-    - name: Valkey Documentation
-      url: https://valkey.io
-    - name: Issue Tracker
-      url: https://github.com/valkey-io/valkey-operator/issues
+version: 1.0.0
+appVersion: "1.0.0"
+
+dependencies:
+  - name: valkey-operator
+    alias: operator
+    version: 1.0.0
+    repository: "file://charts/valkey-operator"
+
+  - name: valkey-cluster
+    alias: cluster
+    version: 1.0.0
+    repository: "file://charts/valkey-cluster"

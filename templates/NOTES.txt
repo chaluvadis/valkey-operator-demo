@@ -1,35 +1,8 @@
-The valkey-operator has been installed.
-{{- if .Values.valkeyCluster.create }}
+Valkey Infrastructure has been installed.
 
-A ValkeyCluster named '{{ .Values.valkeyCluster.name }}' has been created with:
-  - {{ .Values.valkeyCluster.shards }} shard group(s)
-  - {{ .Values.valkeyCluster.replicas }} replica(s) per shard
-{{- end }}
+Check the status of your release:
 
-To verify the operator is running:
+  helm status valkey-infra -n {{ .Release.Namespace }}
 
-  kubectl get pods -n {{ .Release.Namespace }}
-
-To check cluster status:
-
-  kubectl get valkeycluster -n {{ .Release.Namespace }}
-  kubectl get valkeycluster {{ .Values.valkeyCluster.name }} -n {{ .Release.Namespace }} -o jsonpath='{.status.state}' && echo
-
-To view operator logs:
-
-  kubectl logs -f deployment/{{ include "valkey-operator.fullname" . }} -n {{ .Release.Namespace }}
-
-To create an additional ValkeyCluster (beyond the default one):
-
-  cat <<EOF | kubectl apply -f -
-  apiVersion: valkey.io/v1alpha1
-  kind: ValkeyCluster
-  metadata:
-    name: my-additional-cluster
-    namespace: {{ .Release.Namespace }}
-  spec:
-    shards: 3
-    replicas: 2
-  EOF
-
-For more information, see: https://github.com/valkey-io/valkey-operator
+Read the full documentation at:
+  valkey-infra/README.md

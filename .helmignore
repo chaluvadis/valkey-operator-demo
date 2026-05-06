@@ -26,6 +26,3 @@
 
 # Unit tests (only ignore root-level tests/, not templates/tests/)
 /tests/
-
-# Kilo editor directory
-.kilo/

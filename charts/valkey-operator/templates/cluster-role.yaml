@@ -7,40 +7,52 @@ metadata:
     {{- include "valkey-operator.labels" . | nindent 4 }}
 rules:
 - apiGroups:
-  - ""
+    - ""
   resources:
-  - configmaps
-  - secrets
-  - services
+    - configmaps
+    - secrets
+    - services
   verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
 - apiGroups:
-  - ""
+    - ""
   resources:
-  - pods
+    - pods
   verbs:
-  - get
-  - list
-  - watch
+    - get
+    - list
+    - watch
 - apiGroups:
-  - apps
+    - apps
   resources:
-  - deployments
-  - statefulsets
+    - deployments
+    - statefulsets
   verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+    - ""
+  resources:
+    - endpoints
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
 - apiGroups:
   - events.k8s.io
   resources:

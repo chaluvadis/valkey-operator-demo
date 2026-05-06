@@ -1,0 +1,89 @@
+# Global settings
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# Image configuration
+image:
+  registry: ghcr.io
+  repository: valkey-io/valkey-operator
+  tag: ""
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Deployment replicas
+replicaCount: 1
+
+# ServiceAccount configuration
+serviceAccount:
+  create: true
+  name: ""
+  automount: true
+  annotations: {}
+  labels: {}
+
+# RBAC configuration
+rbac:
+  create: true
+
+# Manager configuration
+manager:
+  leaderElection:
+    enabled: true
+  watchNamespace: ""
+  args: []
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 64Mi
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# Node scheduling constraints
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Pod metadata
+podAnnotations: {}
+podLabels: {}
+commonLabels: {}
+
+# NetworkPolicy configuration (optional)
+networkPolicy:
+  enabled: false
+  targetNamespace: ""
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: valkey
+  allowedNamespaceLabelKey: valkey-access
+  allowedNamespaceLabelValue: "true"
+  port: 6379
+
+# Metrics configuration
+metrics:
+  enabled: true
+  port: 8443
+  service:
+    type: ClusterIP
+    annotations: {}
+    labels: {}

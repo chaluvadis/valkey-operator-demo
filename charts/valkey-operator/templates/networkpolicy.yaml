@@ -3,7 +3,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "valkey-operator.fullname" . }}-network
-  namespace: {{ .Values.networkPolicy.targetNamespace | default .Release.Namespace }}
+  namespace:  {{ .Release.Namespace }}
   labels:
     {{- include "valkey-operator.labels" . | nindent 4 }}
 spec:

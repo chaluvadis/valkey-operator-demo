@@ -1,0 +1,32 @@
+# ValkeyCluster configuration - these values are directly merged into the parent's `cluster:` alias
+enabled: true
+name: "valkey-cluster"
+replicas: 1
+shards: 3
+image:
+  repository: valkey/valkey
+  tag: "7.2-alpine"
+  pullPolicy: IfNotPresent
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+nodeSelector: {}
+tolerations: []
+affinity: {}
+# Persistent storage configuration
+dataStorage:
+  enabled: false
+  persistentVolumeClaimName: ""
+  subPath: ""
+  volumeName: "valkey-data"
+  requestedSize: "5Gi"
+  className: ""
+  accessModes:
+    - ReadWriteOnce
+  keepPvc: true
+  annotations: {}
+  labels: {}

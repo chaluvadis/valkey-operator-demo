@@ -1,0 +1,83 @@
+{{- if .Values.enabled }}
+apiVersion: valkey.io/v1alpha1
+kind: ValkeyCluster
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: valkey
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicas }}
+  shards: {{ .Values.shards }}
+
+  {{- if and .Values.image.repository .Values.image.tag }}
+  image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+  {{- end }}
+
+  {{- if .Values.resources }}
+  resources:
+{{ toYaml .Values.resources | nindent 4 }}
+  {{- end }}
+
+  {{- if .Values.nodeSelector }}
+  nodeSelector:
+{{ toYaml .Values.nodeSelector | nindent 4 }}
+  {{- end }}
+
+  {{- if .Values.tolerations }}
+  tolerations:
+{{ toYaml .Values.tolerations | nindent 4 }}
+  {{- end }}
+
+  {{- if .Values.affinity }}
+  affinity:
+{{ toYaml .Values.affinity | nindent 4 }}
+  {{- end }}
+
+  {{- with .Values.dataStorage }}
+  dataStorage:
+    enabled: {{ .enabled }}
+
+    {{- if .persistentVolumeClaimName }}
+    persistentVolumeClaimName: "{{ .persistentVolumeClaimName }}"
+    {{- end }}
+
+    {{- if .subPath }}
+    subPath: "{{ .subPath }}"
+    {{- end }}
+
+    volumeName: "valkey-data"
+
+    {{- if .requestedSize }}
+    requestedSize: "{{ .requestedSize }}"
+    {{- end }}
+
+    {{- if .className }}
+    className: "{{ .className }}"
+    {{- end }}
+
+    {{- if .accessModes }}
+    accessModes:
+{{ toYaml .accessModes | nindent 6 }}
+    {{- end }}
+
+    {{- if .keepPvc }}
+    keepPvc: {{ .keepPvc }}
+    {{- end }}
+
+    {{- if .annotations }}
+    annotations:
+{{ toYaml .annotations | nindent 6 }}
+    {{- end }}
+
+    {{- if .labels }}
+    labels:
+{{ toYaml .labels | nindent 6 }}
+    {{- end }}
+
+    {{- if .hostPath }}
+    hostPath: "{{ .hostPath }}"
+    {{- end }}
+  {{- end }}
+{{- end }}
