@@ -1,12 +1,14 @@
 # ValkeyCluster configuration - these values are directly merged into the parent's `cluster:` alias
 enabled: true
 name: "valkey-cluster"
-replicas: 1
 shards: 3
+replicas: 1
 image:
   repository: valkey/valkey
-  tag: "7.2-alpine"
+  tag: 9.0.4-trixie
   pullPolicy: IfNotPresent
+exporter:
+  enabled: false
 resources:
   limits:
     cpu: 500m
@@ -17,14 +19,21 @@ resources:
 nodeSelector: {}
 tolerations: []
 affinity: {}
-# Persistent storage configuration
+
+startupProbe:
+  tcpSocket:
+    port: 6379
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  failureThreshold: 30
+
 dataStorage:
-  enabled: false
+  enabled: true
   persistentVolumeClaimName: ""
   subPath: ""
   volumeName: "valkey-data"
   requestedSize: "5Gi"
-  className: ""
+  className: vsphere-db
   accessModes:
     - ReadWriteOnce
   keepPvc: true

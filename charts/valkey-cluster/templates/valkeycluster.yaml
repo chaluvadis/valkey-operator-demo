@@ -7,6 +7,7 @@ metadata:
   labels:
     app.kubernetes.io/name: valkey
     app.kubernetes.io/instance: {{ .Release.Name }}
+
 spec:
   replicas: {{ .Values.replicas }}
   shards: {{ .Values.shards }}
@@ -35,49 +36,14 @@ spec:
 {{ toYaml .Values.affinity | nindent 4 }}
   {{- end }}
 
-  {{- with .Values.dataStorage }}
-  dataStorage:
-    enabled: {{ .enabled }}
-
-    {{- if .persistentVolumeClaimName }}
-    persistentVolumeClaimName: "{{ .persistentVolumeClaimName }}"
-    {{- end }}
-
-    {{- if .subPath }}
-    subPath: "{{ .subPath }}"
-    {{- end }}
-
-    volumeName: "valkey-data"
-
-    {{- if .requestedSize }}
-    requestedSize: "{{ .requestedSize }}"
-    {{- end }}
-
-    {{- if .className }}
-    className: "{{ .className }}"
-    {{- end }}
-
-    {{- if .accessModes }}
-    accessModes:
-{{ toYaml .accessModes | nindent 6 }}
-    {{- end }}
-
-    {{- if .keepPvc }}
-    keepPvc: {{ .keepPvc }}
-    {{- end }}
-
-    {{- if .annotations }}
-    annotations:
-{{ toYaml .annotations | nindent 6 }}
-    {{- end }}
-
-    {{- if .labels }}
-    labels:
-{{ toYaml .labels | nindent 6 }}
-    {{- end }}
-
-    {{- if .hostPath }}
-    hostPath: "{{ .hostPath }}"
-    {{- end }}
+  {{- if .Values.startupProbe }}
+  startupProbe:
+{{ toYaml .Values.startupProbe | nindent 4 }}
   {{- end }}
+
+  {{- if .Values.dataStorage }}
+  dataStorage:
+{{ toYaml .Values.dataStorage | nindent 4 }}
+  {{- end }}
+
 {{- end }}

@@ -20,10 +20,10 @@ valkey-infra/                    (Umbrella Chart - Single entrypoint)
 
 ### Component Separation
 
-| Subchart | Role | Installs |
-|----------|------|----------|
+| Subchart          | Role          | Installs                                           |
+| ----------------- | ------------- | -------------------------------------------------- |
 | `valkey-operator` | Control plane | Operator Deployment, RBAC, ServiceAccount, Metrics |
-| `valkey-cluster` | Data plane | `ValkeyCluster` custom resource only |
+| `valkey-cluster`  | Data plane    | `ValkeyCluster` custom resource only               |
 
 ## Prerequisites
 
@@ -32,20 +32,27 @@ valkey-infra/                    (Umbrella Chart - Single entrypoint)
 
 ## Quick Start
 
+### 0. Install the CRDs First
+
+```bash
+  kubectl apply -f crds/
+```
+
+CRDs are cluster-scoped, not namespace-scoped, so -n valkey-operator has no effect for them.
+
 ### 1. Install the Umbrella Chart
 
 This single command installs **both** the operator and a default ValkeyCluster:
 
 ```bash
 helm install valkey-infra . \
-  --namespace valkey-system \
+  --namespace valkey-operator \
   --create-namespace \
-  --skip-crds \
-  --set operator.image.tag=latest \
-  --set cluster.image.tag=7.2-alpine
+  --skip-crds
 ```
 
 **What happens:**
+
 1. CRDs (`ValkeyCluster`, `ValkeyNode`) are installed (once per cluster)
 2. `valkey-operator` subchart deploys the operator
 3. Operator becomes ready (health checks pass)
@@ -56,14 +63,14 @@ helm install valkey-infra . \
 
 ```bash
 # Check operator pod
-kubectl get pods -n valkey-system -l app.kubernetes.io/name=valkey-operator
+kubectl get pods -n valkey-operator -l app.kubernetes.io/name=valkey-operator
 
 # Check ValkeyCluster status
-kubectl get valkeyclusters -n valkey-system
+kubectl get valkeyclusters -n valkey-operator
 
 # Check Valkey nodes (StatefulSet pods)
-kubectl get statefulsets -n valkey-system
-kubectl get pods -n valkey-system -l app.kubernetes.io/name=valkey
+kubectl get statefulsets -n valkey-operator
+kubectl get pods -n valkey-operator -l app.kubernetes.io/name=valkey
 ```
 
 ## Installation Options
@@ -72,11 +79,9 @@ kubectl get pods -n valkey-system -l app.kubernetes.io/name=valkey
 
 Deploy only the operator without any ValkeyCluster:
 
-
-
 ```bash
 helm install valkey-infra . \
-  --namespace valkey-system \
+  --namespace valkey-operator \
   --create-namespace \
   --skip-crds \
   --set cluster.enabled=false
@@ -89,7 +94,7 @@ apiVersion: valkey.io/v1alpha1
 kind: ValkeyCluster
 metadata:
   name: my-cluster
-  namespace: valkey-system
+  namespace: valkey-operator
 spec:
   shards: 3
   replicas: 2
@@ -101,7 +106,7 @@ Override cluster settings via values:
 
 ```bash
 helm install valkey-infra . \
-  --namespace valkey-system \
+  --namespace valkey-operator \
   --create-namespace \
   --skip-crds \
   --set cluster.name=production-db \
@@ -116,13 +121,14 @@ helm install valkey-infra . \
 
 ```bash
 helm install valkey-infra . \
-  --namespace valkey-system \
+  --namespace valkey-operator \
   --create-namespace \
   --skip-crds \
   --values values-production.yaml
 ```
 
 Example `values-production.yaml`:
+
 ```yaml
 operator:
   replicaCount: 2
@@ -149,40 +155,40 @@ cluster:
 
 ### Global Settings
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `global.imageRegistry` | Override global Docker registry | `""` |
-| `global.imagePullSecrets` | List of image pull secret names | `[]` |
+| Parameter                 | Description                     | Default |
+| ------------------------- | ------------------------------- | ------- |
+| `global.imageRegistry`    | Override global Docker registry | `""`    |
+| `global.imagePullSecrets` | List of image pull secret names | `[]`    |
 
 ### Operator Settings (`operator.*`)
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `operator.replicaCount` | Number of operator replicas (HA) | `1` |
-| `operator.image.repository` | Operator container image | `valkey-io/valkey-operator` |
-| `operator.image.tag` | Operator image tag | `""` (uses chart appVersion) |
-| `operator.image.pullPolicy` | Image pull policy | `IfNotPresent` |
-| `operator.rbac.create` | Create ClusterRole/ClusterRoleBinding | `true` |
-| `operator.serviceAccount.create` | Create ServiceAccount | `true` |
-| `operator.manager.leaderElection.enabled` | Enable leader election for HA | `true` |
-| `operator.metrics.enabled` | Enable Prometheus metrics endpoint | `true` |
-| `operator.resources` | Operator container resources | See values.yaml |
+| Parameter                                 | Description                           | Default                      |
+| ----------------------------------------- | ------------------------------------- | ---------------------------- |
+| `operator.replicaCount`                   | Number of operator replicas (HA)      | `1`                          |
+| `operator.image.repository`               | Operator container image              | `valkey-io/valkey-operator`  |
+| `operator.image.tag`                      | Operator image tag                    | `""` (uses chart appVersion) |
+| `operator.image.pullPolicy`               | Image pull policy                     | `IfNotPresent`               |
+| `operator.rbac.create`                    | Create ClusterRole/ClusterRoleBinding | `true`                       |
+| `operator.serviceAccount.create`          | Create ServiceAccount                 | `true`                       |
+| `operator.manager.leaderElection.enabled` | Enable leader election for HA         | `true`                       |
+| `operator.metrics.enabled`                | Enable Prometheus metrics endpoint    | `true`                       |
+| `operator.resources`                      | Operator container resources          | See values.yaml              |
 
 See `charts/valkey-operator/values.yaml` for full operator configuration options.
 
 ### Cluster Settings (`cluster.*`)
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `cluster.enabled` | Enable/disable cluster creation | `true` |
-| `cluster.name` | ValkeyCluster resource name | `valkey-cluster` |
-| `cluster.replicas` | Replicas per shard | `1` |
-| `cluster.shards` | Number of shard groups | `3` |
-| `cluster.image.repository` | Valkey container image | `valkey/valkey` |
-| `cluster.image.tag` | Valkey image tag | `7.2-alpine` |
-| `cluster.resources` | Valkey node resources | See values.yaml |
-| `cluster.dataStorage.enabled` | Enable persistent storage | `false` |
-| `cluster.dataStorage.requestedSize` | PVC size when persistence enabled | `5Gi` |
+| Parameter                           | Description                       | Default          |
+| ----------------------------------- | --------------------------------- | ---------------- |
+| `cluster.enabled`                   | Enable/disable cluster creation   | `true`           |
+| `cluster.name`                      | ValkeyCluster resource name       | `valkey-cluster` |
+| `cluster.replicas`                  | Replicas per shard                | `1`              |
+| `cluster.shards`                    | Number of shard groups            | `3`              |
+| `cluster.image.repository`          | Valkey container image            | `valkey/valkey`  |
+| `cluster.image.tag`                 | Valkey image tag                  | `7.2-alpine`     |
+| `cluster.resources`                 | Valkey node resources             | See values.yaml  |
+| `cluster.dataStorage.enabled`       | Enable persistent storage         | `false`          |
+| `cluster.dataStorage.requestedSize` | PVC size when persistence enabled | `5Gi`            |
 
 See `charts/valkey-cluster/values.yaml` for full cluster configuration options (nodeSelector, tolerations, affinity, TLS, etc.).
 
@@ -197,6 +203,15 @@ The umbrella chart enforces **correct lifecycle ordering**:
 Kubernetes reconciliation ensures the operator is running before processing the `ValkeyCluster` resource. No sleep hacks or timing-based logic needed.
 
 ## Upgrading
+
+### Safe Upgrade Practices
+
+Before any upgrade:
+
+- Always backup existing ValkeyCluster resources: `kubectl get valkeyclusters --all-namespaces -o yaml > backup.yaml`
+- Test upgrades in a staging environment first
+- Review release notes for breaking changes
+- Use `--dry-run` to preview changes: `helm upgrade valkey-infra . --skip-crds --dry-run`
 
 ### Upgrade Operator Only
 
@@ -220,21 +235,25 @@ helm upgrade valkey-infra . \
 CRDs are managed separately. When updating CRDs:
 
 ```bash
-# Backup existing resources
+# Backup existing resources (CRITICAL STEP)
 kubectl get valkeyclusters --all-namespaces -o yaml > backup-clusters.yaml
+kubectl get valkeynodes --all-namespaces -o yaml > backup-nodes.yaml
 
 # Apply new CRDs
 kubectl apply -f valkey-infra/crds/
 
 # Reinstall operator (without touching clusters)
 helm upgrade valkey-infra . --skip-crds --set cluster.enabled=false
+
+# Verify clusters are still present after CRD update
+kubectl get valkeyclusters --all-namespaces
 ```
 
 ## Rollback
 
 ```bash
 # List release history
-helm history valkey-infra --namespace valkey-system
+helm history valkey-infra --namespace valkey-operator
 
 # Rollback to previous revision
 helm rollback valkey-infra <revision>
@@ -242,12 +261,55 @@ helm rollback valkey-infra <revision>
 
 ## Uninstall
 
-```bash
-# Remove release (preserves CRDs)
-helm uninstall valkey-infra --namespace valkey-system
+### Safe Uninstall Practices
 
-# Delete CRDs (careful: deletes all ValkeyCluster resources!)
-kubectl delete -f valkey-infra/crds/
+Before uninstalling:
+
+- Always backup existing ValkeyCluster resources: `kubectl get valkeyclusters --all-namespaces -o yaml > backup.yaml`
+- Consider scaling down clusters to zero replicas first if you want to preserve data
+- Verify no applications are depending on the Valkey clusters
+
+### Remove Release (Preserves CRDs and Data)
+
+```bash
+# Remove the Helm release but keep CRDs and existing ValkeyCluster resources
+helm uninstall valkey-infra --namespace valkey-operator
+```
+
+### Complete Removal (Deletes Everything)
+
+```bash
+# 1. Backup all Valkey resources (RECOMMENDED)
+kubectl get valkeyclusters --all-namespaces -o yaml > backup-clusters.yaml
+kubectl get valkeynodes --all-namespaces -o yaml > backup-nodes.yaml
+
+# 2. Optionally scale down clusters to zero before deletion (for persistence)
+# kubectl patch valkeycluster/<name> -n <namespace> -p '{"spec":{"replicas":0}}' --type=merge
+
+# 3. Remove the Helm release
+helm uninstall valkey-infra --namespace valkey-operator
+
+# 4. Delete CRDs (THIS DELETES ALL VALKEYCLUSTER RESOURCES!)
+kubectl delete crd valkeyclusters.valkey.io
+kubectl delete crd valkeynodes.valkey.io
+```
+
+### Selective Removal
+
+To remove only the operator while keeping ValkeyCluster resources:
+
+```bash
+helm upgrade valkey-infra . --skip-crds --set cluster.enabled=false
+```
+
+To remove ValkeyCluster resources but keep the operator for future use:
+
+```bash
+# Delete specific ValkeyCluster resources
+kubectl delete valkeycluster <cluster-name> -n <namespace>
+
+# Or delete all ValkeyClusters in a namespace
+kubectl delete valkeycluster --all -n <namespace>
 ```
 
 ## Multi-Cluster Support
@@ -301,11 +363,12 @@ cluster:
 Operator exposes Prometheus metrics on port 8443:
 
 ```bash
-kubectl port-forward -n valkey-system svc/valkey-operator-metrics 8443:8443
+kubectl port-forward -n valkey-operator svc/valkey-operator-metrics 8443:8443
 curl -k https://localhost:8443/metrics
 ```
 
 Key metrics:
+
 - `valkey_operator_reconcile_total` — Reconciliation operations
 - `valkey_operator_reconcile_errors_total` — Reconciliation errors
 - `valkey_operator_valkeycluster_status{condition}` — Cluster health
@@ -315,11 +378,12 @@ Key metrics:
 ### Operator Not Ready
 
 ```bash
-kubectl describe pod -n valkey-system -l app.kubernetes.io/name=valkey-operator
-kubectl logs -n valkey-system deployment/valkey-operator
+kubectl describe pod -n valkey-operator -l app.kubernetes.io/name=valkey-operator
+kubectl logs -n valkey-operator deployment/valkey-operator
 ```
 
 Check for:
+
 - Image pull errors
 - RBAC restrictions (missing ClusterRole)
 - Insufficient resources
@@ -327,12 +391,13 @@ Check for:
 ### ValkeyCluster Stuck
 
 ```bash
-kubectl get valkeycluster -n valkey-system
-kubectl describe valkeycluster <name> -n valkey-system
-kubectl get valkeynodes -n valkey-system -l valkey.io/cluster=<name>
+kubectl get valkeycluster -n valkey-operator
+kubectl describe valkeycluster <name> -n valkey-operator
+kubectl get valkeynodes -n valkey-operator -l valkey.io/cluster=<name>
 ```
 
 Common causes:
+
 - Operator not ready (wait forReady)
 - Resource quotas exceeded
 - Network policies blocking pod-to-pod traffic
@@ -340,8 +405,8 @@ Common causes:
 ### PVCs Not Binding (when persistence enabled)
 
 ```bash
-kubectl get pvc -n valkey-system
-kubectl describe pvc <name> -n valkey-system
+kubectl get pvc -n valkey-operator
+kubectl describe pvc <name> -n valkey-operator
 ```
 
 Verify storage class exists and has available capacity.
