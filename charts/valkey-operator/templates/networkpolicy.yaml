@@ -8,7 +8,8 @@ metadata:
     {{- include "valkey-operator.labels" . | nindent 4 }}
 spec:
   podSelector:
-    matchLabels: {{- toYaml .Values.networkPolicy.podSelector.matchLabels | nindent 4 }}
+    matchLabels:
+{{ toYaml .Values.networkPolicy.podSelector.matchLabels | indent 6 }}
   policyTypes:
   - Ingress
   ingress:

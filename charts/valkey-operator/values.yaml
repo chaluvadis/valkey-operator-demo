@@ -7,14 +7,14 @@ global:
 image:
   registry: ghcr.io
   repository: valkey-io/valkey-operator
-  tag: bbbb25e
+  tag: 1619a21
   pullPolicy: IfNotPresent
 
 nameOverride: ""
 fullnameOverride: ""
 
 # Deployment replicas
-replicaCount: 1
+replicaCount: 2
 
 # ServiceAccount configuration
 serviceAccount:
@@ -38,17 +38,20 @@ manager:
 # Resource limits and requests
 resources:
   limits:
-    cpu: 500m
-    memory: 128Mi
+    cpu: 1000m
+    memory: 256Mi
   requests:
-    cpu: 10m
-    memory: 64Mi
+    cpu: 50m
+    memory: 128Mi
 
 # Pod security context
 podSecurityContext:
   runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
   seccompProfile:
     type: RuntimeDefault
+  fsGroup: 1000
 
 # Container security context
 securityContext:
@@ -70,14 +73,14 @@ commonLabels: {}
 
 # NetworkPolicy configuration (optional)
 networkPolicy:
-  enabled: false
+  enabled: true
   targetNamespace: ""
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: valkey
+      app.kubernetes.io/name: valkey-operator
   allowedNamespaceLabelKey: valkey-access
   allowedNamespaceLabelValue: "true"
-  port: 6379
+  port: 8443
 
 # Metrics configuration
 metrics:
